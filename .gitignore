@@ -1,12 +1,2 @@
-# Environment
+
 .env
-data
-logs
-assets
-
-# Editor
-.vscode
-
-# Python
-venv
-__pycache__
