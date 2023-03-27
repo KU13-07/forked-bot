@@ -1,2 +1,4 @@
 
 .env
+model.py
+cogs/__pycache__
