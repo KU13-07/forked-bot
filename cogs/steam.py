@@ -17,22 +17,24 @@ class Steam(discord.Cog):
         if not (buy or sell):
             raise ApplicationCommandError("Either a buy or sell value is required")
 
+        def form(float):
+            return format(float, '.2f')
+
         profit = sell-(buy*1.15+0.01)
         embed = (discord.Embed(title="Steam", color=0x007bff)
-                 .add_field(name="Buy value:", value=f"${format(buy, '.2f')}")
-                 .add_field(name="Sell value:", value=f"${format(sell, '.2f')}")
-                 .add_field(name="Profit:", value=f"${format(profit, '.2f')}"))
-        if buy and sell:
-            if profit > 0:
-                embed.color = 0x00ff00
-            elif profit < 0:
-                embed.color = 0xff0000
+                 .add_field(name="Buy value:", value=f"${form(buy)}")
+                 .add_field(name="Sell value:", value=f"${form(sell)}")
+                 .add_field(name="Profit:", value=f"${form(profit)}"))
+        if profit > 0:
+            embed.color = 0x00ff00
+        elif profit < 0:
+            embed.color = 0xff0000
         else:
             embed.set_field_at(2, name="Profit:", value="$0.00")
             if buy:
-                embed.set_field_at(1, name="Sell value:", value=f"${format(buy*1.15+0.01, '.2f')}")
+                embed.set_field_at(1, name="Sell value:", value=f"${form(buy*1.15+0.01)}")
             else:
-                embed.set_field_at(0, name="Buy value:", value=f"${format(sell/1.15-0.01, '.2f')}")
+                embed.set_field_at(0, name="Buy value:", value=f"${form(sell/1.15-0.01)}")
         await ctx.respond(embed=embed)
 
 def setup(bot: discord.Bot):

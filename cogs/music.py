@@ -2,7 +2,7 @@ import discord
 from discord.ext.pages import Paginator
 import asyncio
 from yt_dlp import YoutubeDL
-from discord import ApplicationContext
+from discord import ApplicationContext, ApplicationCommandError
 import time
 
 TIMEOUT = 300
@@ -15,13 +15,13 @@ class Source():
         "noplaylist": True
     }
 
-    def __init__(self, ctx: ApplicationContext, search: str):
+    def __init__(self, search: str):
         try:
             with YoutubeDL(self.YDL_OPTS) as ydl:
                 data = ydl.extract_info(search, download=False)
                 self.sort_data(data)
         except:
-            raise discord.ApplicationCommandError("Invalid URL")
+            raise ApplicationCommandError("Invalid URL")
 
     def create_embed(self) -> discord.Embed:
         embed = (discord.Embed(title=self.title,
@@ -116,13 +116,13 @@ class Music(discord.Cog):
         voice = ctx.author.voice
 
         if not voice:
-            raise discord.ApplicationCommandError("User must be in a voice channel to use this command") 
+            raise ApplicationCommandError("User must be in a voice channel to use this command") 
 
         if ctx.voice_state.voice:
             if ctx.voice_state.voice.is_connected():
                 if ctx.voice_state.is_playing:
                     if ctx.voice_state.voice.channel != voice.channel:
-                        raise discord.ApplicationCommandError(
+                        raise ApplicationCommandError(
                             'Bot in use')
                     else:
                         return
@@ -133,13 +133,13 @@ class Music(discord.Cog):
         voice = ctx.author.voice
 
         if not voice:
-            raise discord.ApplicationCommandError("User must be in a voice channel to use this command")
+            raise ApplicationCommandError("User must be in a voice channel to use this command")
 
         if voice.channel != ctx.voice_state.voice.channel:
-            raise discord.ApplicationCommandError("User must be in the same voice channel as bot to use this command")
+            raise ApplicationCommandError("User must be in the same voice channel as bot to use this command")
 
         if not ctx.voice_state.is_playing:
-            raise discord.ApplicationCommandError("The queue is empty")
+            raise ApplicationCommandError("The queue is empty")
 
     @discord.command(name="connect")
     async def _connect(self, ctx: ApplicationContext):
@@ -159,7 +159,7 @@ class Music(discord.Cog):
         voice = ctx.author.voice
 
         if not ctx.voice_state.voice or not ctx.voice_state.voice.is_connected():
-            raise discord.ApplicationCommandError(
+            raise ApplicationCommandError(
                 'Bot is not currently connected to a voice channel')
         await ctx.voice_state.voice.disconnect()
         embed = discord.Embed(
@@ -173,7 +173,7 @@ class Music(discord.Cog):
     async def _skip(self, ctx: ApplicationContext):
         destination = ctx.author.voice.channel
         if destination != ctx.voice_state.voice.channel:
-            raise discord.ApplicationCommandError("You must be in same voice channel as bot to use this command")            
+            raise ApplicationCommandError("You must be in same voice channel as bot to use this command")            
 
         ctx.voice_state.voice.stop()
 
@@ -268,7 +268,7 @@ class Music(discord.Cog):
         await self.connect(ctx)
         await ctx.defer()
 
-        source = Source(ctx, search)
+        source = Source(search)
         ctx.voice_state.ctx = ctx
 
         if ctx.voice_state.is_playing:
