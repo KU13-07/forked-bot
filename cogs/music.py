@@ -3,9 +3,10 @@ from discord.ext.pages import Paginator
 import asyncio
 from yt_dlp import YoutubeDL
 from discord import ApplicationContext, ApplicationCommandError
-import time
+from time import time
 
 TIMEOUT = 300
+CSGO = "csgo_music"
 
 class Source():
     YDL_OPTS = {
@@ -16,12 +17,15 @@ class Source():
     }
 
     def __init__(self, search: str):
-        try:
-            with YoutubeDL(self.YDL_OPTS) as ydl:
-                data = ydl.extract_info(search, download=False)
-                self.sort_data(data)
-        except:
-            raise ApplicationCommandError("Invalid URL")
+        if not search.split(":")[0] == CSGO:
+            try:
+                with YoutubeDL(self.YDL_OPTS) as ydl:
+                    data = ydl.extract_info(search, download=False)
+            except:
+                raise ApplicationCommandError("Invalid URL")
+        else:
+            pass
+        self.sort_data(data)
 
     def create_embed(self) -> discord.Embed:
         embed = (discord.Embed(title=self.title,
@@ -42,7 +46,6 @@ class Source():
         self.thumbnail = data["thumbnail"]
         self.duration = data["duration"]
         self.url = data["url"]
-        self.start_time = data.get("start_time") # Not always
 
 class VoiceState:
     def __init__(self, bot: discord.Bot):
@@ -75,7 +78,7 @@ class VoiceState:
                     await self.voice.disconnect()
 
             self.next.clear()
-            self.events = [time.time()]
+            self.events = [time()]
 
             embed = self.current.create_embed()
             embed.set_footer(text="Now playing")
@@ -208,7 +211,7 @@ class Music(discord.Cog):
         total = 0
         for i in range(0, len(events), 2):
             start_time = events[i]
-            end_time = events[i+1] if i+1 < len(events) else time.time()
+            end_time = events[i+1] if i+1 < len(events) else time()
             total += end_time - start_time
 
         embed = ctx.voice_state.current.create_embed()
@@ -247,7 +250,7 @@ class Music(discord.Cog):
         await self.check(ctx)
         voice = ctx.voice_state.voice
 
-        ctx.voice_state.events.append(time.time())
+        ctx.voice_state.events.append(time())
 
         embed = ctx.voice_state.current.embed
         if voice.is_paused():
@@ -264,7 +267,6 @@ class Music(discord.Cog):
     @discord.command(name="play")
     @discord.option("search", description="Search for song", required=True)
     async def _play(self, ctx: ApplicationContext, search: str):
-        start = time.perf_counter()
         await self.connect(ctx)
         await ctx.defer()
 
@@ -272,12 +274,22 @@ class Music(discord.Cog):
         ctx.voice_state.ctx = ctx
 
         if ctx.voice_state.is_playing:
-            queue_size = ctx.voice_state.queue.qsize()+2
+            qsize = ctx.voice_state.queue.qsize()+2
 
-            embed = source.embed
-            embed.set_footer(text=f"Added to queue {queue_size}/{queue_size}")
+            embed = (source.create_embed()
+                     .set_footer(text=f"Added to queue {qsize}/{qsize}"))
             await ctx.respond(embed=embed)
         await ctx.voice_state.queue.put(source)
+
+    # Alternative to /play but for CS:GO music
+    @discord.command(name="music")
+    @discord.option("search", description="Search for music from CS:GO")
+    @discord.option("phase", description="Phase of music kit")
+    async def _music(self, ctx: ApplicationContext, search: str, phase: discord.OptionChoice()):
+        if not search:
+            pass
+        
+        await self._play(ctx, f"{CSGO}:{search}")
 
     @discord.command(name="stop")
     async def _stop(self, ctx: ApplicationContext):
