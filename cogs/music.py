@@ -61,7 +61,7 @@ class Source():
 
 class VoiceState:
     def __init__(self, bot: discord.Bot):
-        self.volume = 0.5
+        self.volume = 0.4
         self.loop = False
         self.queue = asyncio.Queue()
         self.voice = None
@@ -82,8 +82,7 @@ class VoiceState:
         while True:
             if not self.loop:
                 try:
-                    async with asyncio.timeout(TIMEOUT):
-                        self.current = await self.queue.get()
+                    self.current = await asyncio.wait_for(self.queue.get(), timeout=TIMEOUT)
                 except asyncio.TimeoutError:
                     self.queue = asyncio.Queue()
                     await self.voice.disconnect()
