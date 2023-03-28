@@ -1,3 +1,4 @@
 .env
 model.py
+.ffmpeg.exe
 cogs/__pycache__
