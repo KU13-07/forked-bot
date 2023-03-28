@@ -13,8 +13,7 @@ async def on_ready():
     print("Bot ready")
 
 if __name__ == "__main__":
-    for file in os.listdir('cogs'):
-        if file.endswith('.py'):
-            bot.load_extension(f'cogs.{file[:-3]}')
+    cogs = [file for file in os.listdir("cogs") if file.endswith(".py")]
+    bot.load_extensions(cogs)
 
     bot.run(os.getenv('TOKEN'))

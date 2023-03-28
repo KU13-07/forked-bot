@@ -1,5 +1,5 @@
 import discord
-from discord.ext.pages import Paginator
+from discord.ext.pages import Paginator # For queue (temp?)
 import asyncio
 from yt_dlp import YoutubeDL
 from discord import ApplicationContext, ApplicationCommandError
