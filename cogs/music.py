@@ -97,12 +97,6 @@ class Music(discord.Cog):
         self.bot = bot
         self.voice_states = {}
 
-    async def cog_command_error(self, ctx: ApplicationContext, error: Exception):
-        if str(error) == "Application Command raised an exception: AttributeError: 'NoneType' object has no attribute 'channel'":
-            error = "Bot is not currently in use"
-        embed = discord.Embed(title='Error', description=error)
-        await ctx.respond(embed=embed)
-
     def get_voice_state(self, ctx: ApplicationContext):
         voice_state = self.voice_states.get(ctx.guild_id)
         if not voice_state:
