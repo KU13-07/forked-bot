@@ -12,13 +12,12 @@ async def on_ready():
     print("Bot ready")
 
 @bot.event
-async def on_error(ctx, error):
-    print(error)
+async def on_application_command_error(ctx, error):
+    embed = discord.Embed(title="Error", description=error)
+    await ctx.respond(embed=embed)
 
 if __name__ == "__main__":
-    cogs = [file for file in os.listdir("cogs") if file.endswith(".py")]
-    bot.load_extensions(cogs)
-
-    print(f"{cog} loaded\n" for cog in cogs)
+    cogs = [f"cogs.{file[:-3]}" for file in os.listdir("cogs") if file.endswith(".py")]
+    bot.load_extensions(*cogs)
 
     bot.run(os.getenv('TOKEN'))

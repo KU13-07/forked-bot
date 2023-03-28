@@ -3,10 +3,12 @@ from discord.ext.pages import Paginator # For queue (temp?)
 import asyncio
 from yt_dlp import YoutubeDL
 from discord import ApplicationContext, ApplicationCommandError
-from time import time
+from json import load
+from rapidfuzz.process import extractOne
 
 TIMEOUT = 300
 CSGO = "csgo_music"
+PHASES = ["mainmenu", "roundmvpanthem", "chooseteam", "wonround", "lostround", "deathcam", "bombplanted", "bombtenseccount", "bombtenseccount", "startround_01", "startround_02", "startround_03", "startaction_01", "startaction_02", "startaction_03"]
 
 class Source():
     YDL_OPTS = {
@@ -24,15 +26,26 @@ class Source():
             except:
                 raise ApplicationCommandError("Invalid URL")
         else:
-            pass
+            with open("index.json") as f:
+                index = load(f)
+            _, search, phase = search.split(":")
+
+            title, *_ = extractOne(search, list(index))
+            data = index[title]
+            data.update({
+                "title": title,
+                "webpage_url": f"https://csgostash.com/music/{data['id']}",
+                "uploader_url": "",
+                "url": f"https://csgostash.com/storage/mp3/{data['id']}/{phase}.mp3",
+            })
+
         self.sort_data(data)
 
     def create_embed(self) -> discord.Embed:
         embed = (discord.Embed(title=self.title,
                                     url=self.video_url)
                  .set_author(name=self.uploader, url=self.uploader_url)
-                 .set_image(url=self.thumbnail)
-                 .add_field(name='Duration', value=f"{self.duration}s"))
+                 .set_image(url=self.thumbnail))
         return embed
         
     def sort_data(self, data: dict):
@@ -44,7 +57,6 @@ class Source():
         self.uploader = data["uploader"]
         self.uploader_url = data["uploader_url"]
         self.thumbnail = data["thumbnail"]
-        self.duration = data["duration"]
         self.url = data["url"]
 
 class VoiceState:
@@ -56,7 +68,6 @@ class VoiceState:
         self.ctx = None
 
         self.next = asyncio.Event()
-        self.events = []
         self.current = None
         self.player = bot.loop.create_task(self.audio_player_task())
 
@@ -78,7 +89,6 @@ class VoiceState:
                     await self.voice.disconnect()
 
             self.next.clear()
-            self.events = [time()]
 
             embed = self.current.create_embed()
             embed.set_footer(text="Now playing")
@@ -196,31 +206,6 @@ class Music(discord.Cog):
         ctx.voice_state.loop = not ctx.voice_state.loop
         await ctx.respond(embed=embed)
 
-    @discord.command(name="progress")
-    async def _progress(self, ctx: ApplicationContext):
-        await self.check(ctx)
-        events = ctx.voice_state.events
-        
-        # idek stolen from chat-gpt
-        total = 0
-        for i in range(0, len(events), 2):
-            start_time = events[i]
-            end_time = events[i+1] if i+1 < len(events) else time()
-            total += end_time - start_time
-
-        embed = ctx.voice_state.current.create_embed()
-        diff = int(total/ctx.voice_state.current.duration*10)
-        embed.description = "⬜"*diff+"⬛"*(10-diff)
-        embed.set_footer(text=f"Currently playing | 1/{ctx.voice_state.queue.qsize()+1}")
-
-        await ctx.respond(embed=embed)
-    @discord.command(name="current")
-    async def _current(self, ctx: ApplicationContext):
-        await self._progress(ctx)
-    @discord.command(name="duration")
-    async def _duration(self, ctx: ApplicationContext):
-        await self._progress(ctx)
-
     @discord.command(name="queue")
     async def _queue(self, ctx: ApplicationContext):
         await self.check(ctx)
@@ -243,8 +228,6 @@ class Music(discord.Cog):
     async def _pause(self, ctx: ApplicationContext):
         await self.check(ctx)
         voice = ctx.voice_state.voice
-
-        ctx.voice_state.events.append(time())
 
         embed = ctx.voice_state.current.embed
         if voice.is_paused():
@@ -277,13 +260,13 @@ class Music(discord.Cog):
 
     # Alternative to /play but for CS:GO music
     @discord.command(name="music")
-    @discord.option("search", description="Search for music from CS:GO")
-    @discord.option("phase", description="Phase of music kit")
-    async def _music(self, ctx: ApplicationContext, search: str, phase: discord.OptionChoice()):
+    @discord.option("search", description="Search for music from CS:GO", required=False)
+    @discord.option("phase", description="Phase of music kit", choices=PHASES, required=False)
+    async def _music(self, ctx: ApplicationContext, search: str, phase: str):
         if not search:
             pass
         
-        await self._play(ctx, f"{CSGO}:{search}")
+        await self._play(ctx, f"{CSGO}:{search}:{phase if phase else 'roundmvpanthem'}")
 
     @discord.command(name="stop")
     async def _stop(self, ctx: ApplicationContext):
